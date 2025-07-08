@@ -1,20 +1,26 @@
 package commands
 
 import (
-	"context"
 	"fmt"
-
-	"github.com/Vorex075/aggreGator/internal/rss"
+	"time"
 )
 
 // handleAgg Prints out the information of a rss
 func handleAgg(s *State, cmd Command) error {
-	data, err := rss.FetchFeed(context.Background(), "https://wagslane.dev/index.xml")
-	if err != nil {
-		return err
+	if len(cmd.args) < 1 {
+		return fmt.Errorf("error in agg command: you need to specify the time between fetch\n")
 	}
 
-	fmt.Println(*data)
+	timeBetweenReqs, err := time.ParseDuration(cmd.args[0])
+	if err != nil {
+		return fmt.Errorf("error in agg command: %v\n", err)
+	}
 
-	return nil
+	ticker := time.NewTicker(timeBetweenReqs)
+	for ; ; <-ticker.C {
+		err = scrapeFeeds(s)
+		if err != nil {
+			fmt.Printf("error in agg command: %v\n", err)
+		}
+	}
 }
