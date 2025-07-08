@@ -26,7 +26,7 @@ WHERE id = $1;
 -- name: GetNextFeedToFetch :one
 SELECT *
 FROM feeds
-ORDER BY last_fetched_at DESC NULLS FIRST
+ORDER BY last_fetched_at IS NOT NULL, last_fetched_at
 LIMIT 1;
 
 -- name: GetFeedById :one
