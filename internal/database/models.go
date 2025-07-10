@@ -11,6 +11,11 @@ import (
 	"github.com/google/uuid"
 )
 
+type Bookmark struct {
+	UserID uuid.UUID
+	PostID int32
+}
+
 type Feed struct {
 	ID            int32
 	Name          string
