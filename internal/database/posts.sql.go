@@ -108,3 +108,59 @@ func (q *Queries) GetPostForUser(ctx context.Context, arg GetPostForUserParams) 
 	}
 	return items, nil
 }
+
+const getRecentPostsForUser = `-- name: GetRecentPostsForUser :many
+SELECT id, created_at, updated_at, title, url, description, published_at, feed_id
+FROM posts
+WHERE feed_id IN (SELECT feed_follows.feed_id
+  FROM feed_follows
+  INNER JOIN users ON feed_follows.user_id = users.id
+  WHERE users.id = $1)
+AND (published_at, id) < ($2, $3)
+ORDER BY published_at DESC, id DESC
+LIMIT $4
+`
+
+type GetRecentPostsForUserParams struct {
+	ID            uuid.UUID
+	PublishedAt   time.Time
+	PublishedAt_2 time.Time
+	Limit         int32
+}
+
+func (q *Queries) GetRecentPostsForUser(ctx context.Context, arg GetRecentPostsForUserParams) ([]Post, error) {
+	rows, err := q.db.QueryContext(ctx, getRecentPostsForUser,
+		arg.ID,
+		arg.PublishedAt,
+		arg.PublishedAt_2,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Post
+	for rows.Next() {
+		var i Post
+		if err := rows.Scan(
+			&i.ID,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.Title,
+			&i.Url,
+			&i.Description,
+			&i.PublishedAt,
+			&i.FeedID,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}

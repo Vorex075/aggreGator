@@ -20,3 +20,14 @@ WHERE feed_id IN (SELECT feed_follows.feed_id
   INNER JOIN users ON feed_follows.user_id = users.id
   WHERE users.id = $1)
 LIMIT $2;
+
+-- name: GetRecentPostsForUser :many
+SELECT *
+FROM posts
+WHERE feed_id IN (SELECT feed_follows.feed_id
+  FROM feed_follows
+  INNER JOIN users ON feed_follows.user_id = users.id
+  WHERE users.id = $1)
+AND (published_at, id) < ($2, $3)
+ORDER BY published_at DESC, id DESC
+LIMIT $4;
