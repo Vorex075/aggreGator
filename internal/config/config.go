@@ -4,11 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"time"
 )
 
 type Config struct {
 	DbUrl       string `json:"db_url"`
 	CurrentUser string `json:"current_user_name"`
+	LastPost    struct {
+		Publicated_at time.Time `json:"publicated_at"`
+		Id            int       `json:"id"`
+	} `json:"last_post"`
 }
 
 const configFileName = "/.gatorconfig.json"
@@ -28,6 +33,9 @@ func Read() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("error while trying to read json file: %v", err)
 	}
+	if conf.LastPost.Publicated_at.IsZero() {
+		conf.LastPost.Publicated_at = time.Now()
+	}
 	return conf, nil
 }
 
@@ -35,15 +43,16 @@ func Read() (Config, error) {
 func (c *Config) SetUser(user string) error {
 	oldUser := c.CurrentUser
 	c.CurrentUser = user
-	err := write(c)
+	err := Write(c)
 	if err != nil {
 		c.CurrentUser = oldUser
 		return err
 	}
+	c.UpdateLastPost(time.Now(), 0)
 	return nil
 }
 
-func write(cfg *Config) error {
+func Write(cfg *Config) error {
 	configFilePath, err := getConfigFilePath()
 	if err != nil {
 		return err
@@ -57,6 +66,11 @@ func write(cfg *Config) error {
 		return fmt.Errorf("error while trying to write the config into the file: %v", err)
 	}
 	return nil
+}
+
+func (c *Config) UpdateLastPost(pubTime time.Time, id int) {
+	c.LastPost.Publicated_at = pubTime
+	c.LastPost.Id = id
 }
 
 func getConfigFilePath() (string, error) {
