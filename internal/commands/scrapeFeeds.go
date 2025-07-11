@@ -56,9 +56,6 @@ func scrapeFeeds(s *State) error {
 				FeedID:      feed.ID,
 			}
 			_, err = s.db.CreatePost(ctx, newPost)
-			if err != nil {
-				fmt.Printf("error while creating a new post: %v\n", err)
-			}
 		}(item)
 	}
 	fmt.Printf("Fetching %d posts...\n", len(info.Channel.Item))
