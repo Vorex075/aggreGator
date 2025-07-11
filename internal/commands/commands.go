@@ -39,6 +39,7 @@ func NewCommands() Commands {
 	cmds.register("following", middlewareLoggedIn(handleFollowing))
 	cmds.register("unfollow", middlewareLoggedIn(handleUnfollow))
 	cmds.register("browse", middlewareLoggedIn(handleBrowse))
+	cmds.register("bookmark", middlewareLoggedIn(handleBookmark))
 	return cmds
 }
 
