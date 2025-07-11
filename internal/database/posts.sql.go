@@ -110,38 +110,45 @@ func (q *Queries) GetPostForUser(ctx context.Context, arg GetPostForUserParams) 
 }
 
 const getRecentPostsForUser = `-- name: GetRecentPostsForUser :many
-SELECT id, created_at, updated_at, title, url, description, published_at, feed_id
+SELECT posts.id, posts.created_at, posts.updated_at, title, url, description, published_at, posts.feed_id, feed_follows.id, feed_follows.created_at, feed_follows.updated_at, user_id, feed_follows.feed_id
 FROM posts
-WHERE feed_id IN (SELECT feed_follows.feed_id
-  FROM feed_follows
-  INNER JOIN users ON feed_follows.user_id = users.id
-  WHERE users.id = $1)
-AND (published_at, id) < ($2, $3)
-ORDER BY published_at DESC, id DESC
-LIMIT $4
+INNER JOIN feed_follows ON posts.feed_id = feed_follows.feed_id
+WHERE feed_follows.user_id = $1 AND (published_at < $2)
+ORDER BY published_at DESC
+LIMIT $3
 `
 
 type GetRecentPostsForUserParams struct {
-	ID            uuid.UUID
-	PublishedAt   time.Time
-	PublishedAt_2 time.Time
-	Limit         int32
+	UserID      uuid.UUID
+	PublishedAt time.Time
+	Limit       int32
 }
 
-func (q *Queries) GetRecentPostsForUser(ctx context.Context, arg GetRecentPostsForUserParams) ([]Post, error) {
-	rows, err := q.db.QueryContext(ctx, getRecentPostsForUser,
-		arg.ID,
-		arg.PublishedAt,
-		arg.PublishedAt_2,
-		arg.Limit,
-	)
+type GetRecentPostsForUserRow struct {
+	ID          int32
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	Title       string
+	Url         string
+	Description sql.NullString
+	PublishedAt time.Time
+	FeedID      int32
+	ID_2        int32
+	CreatedAt_2 time.Time
+	UpdatedAt_2 time.Time
+	UserID      uuid.UUID
+	FeedID_2    int32
+}
+
+func (q *Queries) GetRecentPostsForUser(ctx context.Context, arg GetRecentPostsForUserParams) ([]GetRecentPostsForUserRow, error) {
+	rows, err := q.db.QueryContext(ctx, getRecentPostsForUser, arg.UserID, arg.PublishedAt, arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Post
+	var items []GetRecentPostsForUserRow
 	for rows.Next() {
-		var i Post
+		var i GetRecentPostsForUserRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
@@ -151,6 +158,11 @@ func (q *Queries) GetRecentPostsForUser(ctx context.Context, arg GetRecentPostsF
 			&i.Description,
 			&i.PublishedAt,
 			&i.FeedID,
+			&i.ID_2,
+			&i.CreatedAt_2,
+			&i.UpdatedAt_2,
+			&i.UserID,
+			&i.FeedID_2,
 		); err != nil {
 			return nil, err
 		}
