@@ -12,8 +12,9 @@ import (
 )
 
 type Bookmark struct {
-	UserID uuid.UUID
-	PostID int32
+	UserID    uuid.UUID
+	PostID    int32
+	CreatedAt time.Time
 }
 
 type Feed struct {
